@@ -1,0 +1,41 @@
+version: "2"
+
+volumes:
+  # for persistence between restarts
+  mongo_data: {}
+
+services:
+  web:
+    build: ./phyge_serve
+    ports:
+      - "5050:5050"
+    expose:
+      - "5050"
+    environment:
+      - PYTHONUNBUFFERED=0
+    links:
+      - mongo-db
+    depends_on:
+      - mongo-db
+    volumes:
+      - .:/app
+    working_dir: /app
+    command: gunicorn --config=phyge_serve/gunicorn_cond.py phyge_serve.wsgi:app
+
+  mongo-db:
+    image: mongo:4.1.1
+    logging:
+      driver: none
+    ports:
+      - "27017:27017"
+    volumes:
+      - mongo_data:/data/db
+
+  nginx:
+    build: ./nginx
+    links: 
+      - web
+      - mongo-db
+    ports:
+      - "80:80"
+      - "443:443"
